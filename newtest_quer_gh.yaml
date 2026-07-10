@@ -1,0 +1,563 @@
+####################################################################################################
+#                                                                                                  #
+#        Heim-Monitoring mit 5 Schaltflächen                                                      #                                                                          
+#                                                                                                  #
+####################################################################################################
+esphome:
+  name: smartdisplay2
+  friendly_name: CYD - SmartDisplay2
+
+##################################################################################
+# Hier die ESP-Variante definieren ESP32, ESP32-S3 etc.
+##################################################################################
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+##################################################################################
+# Logging Ja/Nein
+##################################################################################
+logger:
+
+##################################################################################
+# Link zum API-Key in der secret.yaml
+##################################################################################
+api:
+  encryption:
+    key: !secret smartdisplay2_api_key
+
+##################################################################################
+# OTA-Update - Passwort in der secret.yaml
+##################################################################################
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+##################################################################################
+# WIFI - Passwort in der secret.yaml
+##################################################################################
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  ##################################################################################
+  # Fallback-Hotspot mit Passwort in der secret.yaml
+  ##################################################################################
+  ap:
+    ssid: "Smartdisplay2 Fallback Hotspot"
+    password: !secret wifi_ap_password
+
+captive_portal:
+
+##################################################################################
+# Backlight-Pin und RGB-LED konfigurieren - wichtig für korrekte Farbdarstellung
+##################################################################################
+output:
+  - platform: ledc
+    pin: GPIO21
+    id: backlight_pwm
+  - platform: ledc
+    id: output_red
+    pin: GPIO4
+    inverted: true
+  - platform: ledc
+    id: output_green
+    pin: GPIO16
+    inverted: true
+  - platform: ledc
+    id: output_blue
+    pin: GPIO17
+    inverted: true
+
+light:
+  - platform: monochromatic
+    output: backlight_pwm
+    name: Display Backlight
+    id: backlight
+    restore_mode: ALWAYS_ON
+  - platform: rgb
+    name: LED
+    red: output_red
+    id: led
+    green: output_green
+    blue: output_blue
+    restore_mode: ALWAYS_OFF
+
+##################################################################################
+# SPI-Busse konfigurieren.
+# Der ESP32-2432S028R verwendet separate SPI-Busse für Display und Touch
+##################################################################################
+spi:
+  - id: tft
+    clk_pin: GPIO14
+    mosi_pin: GPIO13
+    miso_pin: GPIO12
+  - id: touch
+    clk_pin: GPIO25
+    mosi_pin: GPIO32
+    miso_pin: GPIO39
+
+touchscreen:
+  platform: xpt2046
+  spi_id: touch
+  cs_pin: GPIO33
+  interrupt_pin: GPIO36
+  update_interval: 50ms
+  threshold: 400
+  calibration:
+    x_min: 280
+    x_max: 3860
+    y_min: 340
+    y_max: 3860
+  transform:
+    swap_xy: true
+    mirror_x: true
+    mirror_y: true
+
+##################################################################################
+# Schriftarten definieren, Glyphen bei Bedarf hinzufügen oder entfernen
+##################################################################################
+font:
+  - file: 'fonts/RobotoSlab-Medium.ttf'
+    id: font_small
+    size: 12
+    glyphs:
+      ['&', '@', '!', ',', '.', '?', '"', '%', '(', ')', '+', '-', '_', ':', '°',
+       '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+       'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
+       'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+       ' ', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l',
+       'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
+       'Ä', 'ä', 'Ö', 'ö', 'Ü', 'ü', '/']
+  - file: 'fonts/RobotoSlab-Medium.ttf'
+    id: font_medium
+    size: 16
+    glyphs:
+      ['&', '@', '!', ',', '.', '?', '"', '%', '(', ')', '+', '-', '_', ':', '°',
+       '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+       'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
+       'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+       ' ', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l',
+       'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
+       'Ä', 'ä', 'Ö', 'ö', 'Ü', 'ü', '/']
+  - file: 'fonts/RobotoSlab-Medium.ttf'
+    id: font_large
+    size: 20
+    glyphs:
+      ['&', '@', '!', ',', '.', '?', '"', '%', '(', ')', '+', '-', '_', ':', '°',
+       '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+       'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
+       'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+       ' ', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l',
+       'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
+       'Ä', 'ä', 'Ö', 'ö', 'Ü', 'ü', '/']
+  - file: 'fonts/RobotoSlab-Medium.ttf'
+    id: font_xl
+    size: 30
+    glyphs:
+      ['&', '@', '!', ',', '.', '?', '"', '%', '(', ')', '+', '-', '_', ':', '°',
+       '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+       'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
+       'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+       ' ', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l',
+       'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
+       'Ä', 'ä', 'Ö', 'ö', 'Ü', 'ü', '/']
+  - file: 'fonts/LCDAT&TPhoneTimeDate.ttf'
+    id: font_zeit
+    size: 38
+
+##################################################################################
+# Farbpalette: Blue & Lime
+# Dieses Board verwendet RGB direkt (mit invert_colors: false)
+##################################################################################
+color:
+  - id: col_bg
+    hex: 'f0e8dc'
+  - id: col_header
+    hex: '3b291e'
+  - id: col_white
+    hex: 'ffffff'
+  - id: col_text_dark
+    hex: '2a170f'
+  - id: col_text_muted
+    hex: '8b7464'
+  - id: col_lime
+    hex: '16cc84'
+  - id: col_green
+    hex: '4aa316'
+  - id: col_red
+    hex: '2626dc'
+
+##################################################################################
+# Zeit aus Home Assistant importieren
+##################################################################################
+time:
+  - platform: homeassistant
+    id: esptime
+
+##################################################################################
+# Sensoren mit numerischen Werten
+##################################################################################
+sensor:
+  - platform: homeassistant
+    id: openweathermap_temperatur
+    entity_id: sensor.openweathermap_temperatur
+    internal: true
+  - platform: homeassistant
+    id: openweathermap_luftfeuchtigkeit
+    entity_id: sensor.openweathermap_luftfeuchtigkeit
+    internal: true
+  - platform: homeassistant
+    id: wechselrichter_wirkleistung
+    entity_id: sensor.wechselrichter_wirkleistung
+    internal: true
+  - platform: homeassistant
+    id: wirkleistung_invertiert
+    entity_id: sensor.wirkleistung_invertiert
+    internal: true
+  - platform: homeassistant
+    id: wechselrichter_tagesertrag
+    entity_id: sensor.wechselrichter_tagesertrag
+    internal: true
+  - platform: homeassistant
+    id: marstek_ac_power
+    entity_id: sensor.marstek_ac_power
+    internal: true
+  - platform: homeassistant
+    id: stromzahler_netzbezug_helfer
+    entity_id: sensor.stromzahler_netzbezug_helfer
+    internal: true
+  - platform: homeassistant
+    id: marstek_battery_soc
+    entity_id: sensor.marstek_battery_soc
+    internal: true
+  - platform: homeassistant
+    id: autarkiegrad
+    entity_id: number.autarkiegrad
+    internal: true
+
+##################################################################################
+# Sensoren mit Textwerten (z.B. "on"/"off", Personenstatus etc.)
+##################################################################################
+text_sensor:
+  - platform: homeassistant
+    id: heizung2
+    entity_id: switch.heizung_gastezimmer_steckdose_1
+    internal: true
+  - platform: homeassistant
+    id: nachtlicht
+    entity_id: switch.nachtlicht
+    internal: true
+  - platform: homeassistant
+    id: wwwp
+    entity_id: switch.warmwasser_wp
+    internal: true
+  - platform: homeassistant
+    id: heizung1
+    entity_id: switch.heizung_maxi_steckdose_1
+    internal: true
+  - platform: homeassistant
+    id: wol_pc_status
+    # Trage hier die entity_id deines Geräts ein (z.B. device_tracker oder binary_sensor)
+    entity_id: device_tracker.server
+    internal: true
+  - platform: homeassistant
+    id: person_pascal
+    entity_id: person.pascal
+    internal: true
+  - platform: homeassistant
+    id: person_max
+    entity_id: person.max
+    internal: true
+  - platform: homeassistant
+    id: person_alex
+    entity_id: person.alex
+    internal: true
+
+##################################################################################
+# Touch-Buttons - direkt auf der Hauptseite
+#
+# Layout (320 x 240 px):
+#  y=0..57   Header
+#  y=62..126 Energiekarten (3 Stück, 4px Abstand)
+#  y=130     Trennlinie 1
+#  y=136     Personenzeile
+#  y=148     Trennlinie 2
+#  y=153..235 Buttons (5 Stück, gleichmäßig verteilt)
+#
+# Button-Geometrie: 5 x 57px + 4 x 4px = 301px, Offset=9px
+#   Button 1: x=9..66    (Nachtlicht)
+#   Button 2: x=70..127  (WW WP)
+#   Button 3: x=131..188 (Heizung Maxi)
+#   Button 4: x=192..249 (Heizung Alex)
+#   Button 5: x=253..310 (Wake on LAN - PC)
+##################################################################################
+binary_sensor:
+##################################################################################
+# KNOPF - Nachtlicht
+##################################################################################
+  - platform: touchscreen
+    name: Button Nachtlicht
+    x_min: 9
+    x_max: 66
+    y_min: 153
+    y_max: 235
+    on_press:
+      then:
+        - homeassistant.service:
+            service: switch.toggle
+            data:
+              entity_id: switch.nachtlicht
+##################################################################################
+# KNOPF - Warmwasser WP
+##################################################################################
+  - platform: touchscreen
+    name: Button wwwp
+    x_min: 70
+    x_max: 127
+    y_min: 153
+    y_max: 235
+    on_press:
+      then:
+        - homeassistant.service:
+            service: switch.toggle
+            data:
+              entity_id: switch.warmwasser_wp
+##################################################################################
+# KNOPF - Heizung Maxi
+##################################################################################
+  - platform: touchscreen
+    name: Button Heizung1
+    x_min: 131
+    x_max: 188
+    y_min: 153
+    y_max: 235
+    on_press:
+      then:
+        - homeassistant.service:
+            service: switch.toggle
+            data:
+              entity_id: switch.heizung_maxi_steckdose_1
+##################################################################################
+# KNOPF - Heizung Alex
+##################################################################################
+  - platform: touchscreen
+    name: Button Heizung2
+    x_min: 192
+    x_max: 249
+    y_min: 153
+    y_max: 235
+    on_press:
+      then:
+        - homeassistant.service:
+            service: switch.toggle
+            data:
+              entity_id: switch.heizung_gastezimmer_steckdose_1
+##################################################################################
+# KNOPF - Wake on LAN (PC / Gerät aufwecken)
+##################################################################################
+  - platform: touchscreen
+    name: Button WakeOnLAN
+    x_min: 253
+    x_max: 310
+    y_min: 153
+    y_max: 235
+    on_press:
+      then:
+        - homeassistant.service:
+            service: wake_on_lan.send_magic_packet
+            data:
+              # Trage hier die MAC-Adresse deines Geräts ein (Format: XX:XX:XX:XX:XX:XX)
+              mac: "XX:XX:XX:XX:XX:XX"
+
+##################################################################################
+# Display-Plattform konfigurieren (ILI9341, 320x240, Querformat)
+##################################################################################
+display:
+  - platform: ili9xxx
+    id: esp_display
+    spi_id: tft
+    model: ili9341
+    cs_pin: GPIO15
+    dc_pin: GPIO2
+    auto_clear_enabled: true
+    update_interval: 1s
+    invert_colors: false
+    dimensions:
+      height: 240
+      width: 320
+    rotation: 0°
+    color_palette: 8BIT
+
+    lambda: |-
+      // ============================================================
+      // Hintergrund
+      // ============================================================
+      it.fill(id(col_bg));
+
+      // ============================================================
+      // HEADER  y=0..57 (h=58)
+      // ============================================================
+      it.filled_rectangle(0, 0, 320, 58, id(col_header));
+
+      // Wochentag und Datum direkt per strftime - kein externer Sensor nötig
+      it.strftime(8, 2, id(font_medium), id(col_white), TextAlign::TOP_LEFT,
+        "%A, %d.%m.", id(esptime).now());
+
+      // Uhrzeit HH:MM:SS in einem Block, font_zeit (38px)
+      it.strftime(8, 20, id(font_xl), id(col_white), TextAlign::TOP_LEFT,
+        "%H:%M:%S", id(esptime).now());
+
+      // Temperatur und Luftfeuchte oben rechts
+      it.printf(312, 2, id(font_medium), id(col_white), TextAlign::TOP_RIGHT,
+        "%.1f°C", id(openweathermap_temperatur).state);
+      it.printf(312, 23, id(font_medium), id(col_white), TextAlign::TOP_RIGHT,
+        "%.0f%%", id(openweathermap_luftfeuchtigkeit).state);
+
+      // ============================================================
+      // ENERGIEKARTEN  y=62..126 (h=65)
+      // 3 Karten: je 98px breit, 4px Abstand
+      // x: 8 | 110 | 212
+      // Rahmen: doppeltes rectangle() für sichtbare 2px-Optik
+      // ============================================================
+      const int cy  = 62;
+      const int ch  = 65;
+      const int cw  = 98;
+      const int cx1 = 8;
+      const int cx2 = 110;
+      const int cx3 = 212;
+      const int cw3 = 100;
+
+      // Karte 1: Solar
+      it.filled_rectangle(cx1, cy, cw, ch, id(col_white));
+      it.rectangle(cx1,   cy,   cw,   ch,   id(col_text_muted));
+      it.rectangle(cx1+1, cy+1, cw-2, ch-2, id(col_text_muted));
+      it.printf(cx1 + cw/2, cy + 2, id(font_medium), id(col_text_muted),
+        TextAlign::TOP_CENTER, "Solar");
+      it.printf(cx1 + cw/2, cy + 22, id(font_large), id(col_text_dark),
+        TextAlign::TOP_CENTER, "%.1f kW", id(wechselrichter_wirkleistung).state / 1000.0f);
+      it.printf(cx1 + cw/2, cy + 47, id(font_small), id(col_lime),
+        TextAlign::TOP_CENTER, "%.1f kWh", id(wechselrichter_tagesertrag).state);
+
+      // Karte 2: Verbrauch
+      it.filled_rectangle(cx2, cy, cw, ch, id(col_white));
+      it.rectangle(cx2,   cy,   cw,   ch,   id(col_text_muted));
+      it.rectangle(cx2+1, cy+1, cw-2, ch-2, id(col_text_muted));
+      it.printf(cx2 + cw/2, cy + 2, id(font_medium), id(col_text_muted),
+        TextAlign::TOP_CENTER, "Verbrauch");
+      it.printf(cx2 + cw/2, cy + 22, id(font_large), id(col_text_dark),
+        TextAlign::TOP_CENTER, "%.1f kW", id(wirkleistung_invertiert).state / 1000.0f);
+      it.printf(cx2 + cw/2, cy + 47, id(font_small), id(col_text_muted),
+        TextAlign::TOP_CENTER, "Autarkie %.0f%%", id(autarkiegrad).state);
+
+      // Karte 3: Batterie
+      it.filled_rectangle(cx3, cy, cw3, ch, id(col_white));
+      it.rectangle(cx3,   cy,   cw3,   ch,   id(col_text_muted));
+      it.rectangle(cx3+1, cy+1, cw3-2, ch-2, id(col_text_muted));
+      it.printf(cx3 + cw3/2, cy + 2, id(font_medium), id(col_text_muted),
+        TextAlign::TOP_CENTER, "Batterie");
+      it.printf(cx3 + cw3/2, cy + 22, id(font_large), id(col_text_dark),
+        TextAlign::TOP_CENTER, "%.0f%%", id(marstek_battery_soc).state);
+      if (id(marstek_ac_power).state >= 0) {
+        it.printf(cx3 + cw3/2, cy + 47, id(font_small), id(col_green),
+          TextAlign::TOP_CENTER, "+%.0f W", id(marstek_ac_power).state);
+      } else {
+        it.printf(cx3 + cw3/2, cy + 47, id(font_small), id(col_red),
+          TextAlign::TOP_CENTER, "%.0f W", id(marstek_ac_power).state);
+      }
+
+      // ============================================================
+      // TRENNLINIE 1  y=130
+      // PERSONENZEILE y=132 - zentriert in je 1/3 der Breite (101px)
+      //   Mitten: x=58 | x=159 | x=260
+      // TRENNLINIE 2  y=150
+      // ============================================================
+      it.line(8, 130, 312, 130, id(col_text_muted));
+      it.printf(58,  132, id(font_small), id(col_text_muted), TextAlign::TOP_CENTER,
+        "Pascal: %s", id(person_pascal).state.c_str());
+      it.printf(159, 132, id(font_small), id(col_text_muted), TextAlign::TOP_CENTER,
+        "Max: %s", id(person_max).state.c_str());
+      it.printf(260, 132, id(font_small), id(col_text_muted), TextAlign::TOP_CENTER,
+        "Alex: %s", id(person_alex).state.c_str());
+      it.line(8, 150, 312, 150, id(col_text_muted));
+
+      // ============================================================
+      // SCHALTERKACHELN  y=153..235 (h=82)
+      // 5 Kacheln: je 57px breit, 4px Abstand, Offset=9px
+      // x: 9 | 70 | 131 | 192 | 253
+      // Aktiv:   col_header + Lime-Balken oben (12px) + weißer Text
+      // Inaktiv: col_white + doppelter Rahmen + gedimmter Text
+      // ============================================================
+      const int ty   = 153;
+      const int th   = 82;
+      const int tw   = 57;
+      const int tx[] = {9, 70, 131, 192, 253};
+
+      // Kachel 1: Nachtlicht
+      if (id(nachtlicht).state == "on") {
+        it.filled_rectangle(tx[0], ty, tw, th, id(col_header));
+        it.filled_rectangle(tx[0], ty, tw, 12, id(col_lime));
+        it.printf(tx[0]+tw/2, ty+50, id(font_small), id(col_white), TextAlign::CENTER, "Nacht-");
+        it.printf(tx[0]+tw/2, ty+64, id(font_small), id(col_white), TextAlign::CENTER, "licht");
+      } else {
+        it.filled_rectangle(tx[0], ty, tw, th, id(col_white));
+        it.rectangle(tx[0],   ty,   tw,   th,   id(col_text_muted));
+        it.rectangle(tx[0]+1, ty+1, tw-2, th-2, id(col_text_muted));
+        it.printf(tx[0]+tw/2, ty+50, id(font_small), id(col_text_muted), TextAlign::CENTER, "Nacht-");
+        it.printf(tx[0]+tw/2, ty+64, id(font_small), id(col_text_muted), TextAlign::CENTER, "licht");
+      }
+
+      // Kachel 2: wwwp
+      if (id(wwwp).state == "on") {
+        it.filled_rectangle(tx[1], ty, tw, th, id(col_header));
+        it.filled_rectangle(tx[1], ty, tw, 12, id(col_lime));
+        it.printf(tx[1]+tw/2, ty+50, id(font_small), id(col_white), TextAlign::CENTER, "WW-WP");
+      } else {
+        it.filled_rectangle(tx[1], ty, tw, th, id(col_white));
+        it.rectangle(tx[1],   ty,   tw,   th,   id(col_text_muted));
+        it.rectangle(tx[1]+1, ty+1, tw-2, th-2, id(col_text_muted));
+        it.printf(tx[1]+tw/2, ty+50, id(font_small), id(col_text_muted), TextAlign::CENTER, "WW-WP");
+      }
+
+      // Kachel 3: Heizung1
+      if (id(heizung1).state == "on") {
+        it.filled_rectangle(tx[2], ty, tw, th, id(col_header));
+        it.filled_rectangle(tx[2], ty, tw, 12, id(col_lime));
+        it.printf(tx[2]+tw/2, ty+50, id(font_small), id(col_white), TextAlign::CENTER, "Heizung");
+        it.printf(tx[2]+tw/2, ty+64, id(font_small), id(col_white), TextAlign::CENTER, "Maxi");
+      } else {
+        it.filled_rectangle(tx[2], ty, tw, th, id(col_white));
+        it.rectangle(tx[2],   ty,   tw,   th,   id(col_text_muted));
+        it.rectangle(tx[2]+1, ty+1, tw-2, th-2, id(col_text_muted));
+        it.printf(tx[2]+tw/2, ty+50, id(font_small), id(col_text_muted), TextAlign::CENTER, "Heizung");
+        it.printf(tx[2]+tw/2, ty+64, id(font_small), id(col_text_muted), TextAlign::CENTER, "Maxi");
+      }
+
+      // Kachel 4: Küche
+      if (id(heizung2).state == "on") {
+        it.filled_rectangle(tx[3], ty, tw, th, id(col_header));
+        it.filled_rectangle(tx[3], ty, tw, 12, id(col_lime));
+        it.printf(tx[3]+tw/2, ty+50, id(font_small), id(col_white), TextAlign::CENTER, "Heizung");
+        it.printf(tx[3]+tw/2, ty+64, id(font_small), id(col_white), TextAlign::CENTER, "Alex");
+      } else {
+        it.filled_rectangle(tx[3], ty, tw, th, id(col_white));
+        it.rectangle(tx[3],   ty,   tw,   th,   id(col_text_muted));
+        it.rectangle(tx[3]+1, ty+1, tw-2, th-2, id(col_text_muted));
+        it.printf(tx[3]+tw/2, ty+50, id(font_small), id(col_text_muted), TextAlign::CENTER, "Heizung");
+        it.printf(tx[3]+tw/2, ty+64, id(font_small), id(col_text_muted), TextAlign::CENTER, "Alex");
+      }
+
+      // Kachel 5: Wake on LAN (PC)
+      if (id(wol_pc_status).state == "on") {
+        it.filled_rectangle(tx[4], ty, tw, th, id(col_header));
+        it.filled_rectangle(tx[4], ty, tw, 12, id(col_lime));
+        it.printf(tx[4]+tw/2, ty+50, id(font_small), id(col_white), TextAlign::CENTER, "Server");
+        it.printf(tx[4]+tw/2, ty+64, id(font_small), id(col_white), TextAlign::CENTER, "Online");
+      } else {
+        it.filled_rectangle(tx[4], ty, tw, th, id(col_white));
+        it.rectangle(tx[4],   ty,   tw,   th,   id(col_text_muted));
+        it.rectangle(tx[4]+1, ty+1, tw-2, th-2, id(col_text_muted));
+        it.printf(tx[4]+tw/2, ty+50, id(font_small), id(col_text_muted), TextAlign::CENTER, "WOL");
+        it.printf(tx[4]+tw/2, ty+64, id(font_small), id(col_text_muted), TextAlign::CENTER, "Server");
+      }
