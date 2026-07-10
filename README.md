@@ -3,6 +3,8 @@ Layout zum Energiemonitoring und Steuerung ESPHome und HomeAssistant
 
 Nachdem ich mir einige Cheap Yellow Displays mit resistivem Touchscreen und ESP32-Controller gekauft habe, habe ich mir einen kleinen Energiemonitor designt und möchte euch das Layout bzw die YAML zur Verfügung stellen.
 
+![20260710](Hausmonitor.jpg)
+
 Die folgende YAML soll die Steuerung meiner beiden Wallboxen ermöglichen in dem ESP-Home (unter Home Assistant) die Befehle empfängt und umsetzt.
 
 Voraussetzungen:
